@@ -1,4 +1,4 @@
-#coding=utf8
+# coding=utf8
 import typing
 import requests
 import io
@@ -10,8 +10,6 @@ import os
 import elib
 import youtube_dl
 
-
-
 YAML_LIST_URL = r'https://rawgit.com/132nd-etcher/7c70127508cf88ccc355bfbf67e2ea3d/raw/yt.yml'
 LOGGER = elib.custom_logging.get_logger('PITUBE', log_to_file=True, use_click_handler=False, console_level='DEBUG')
 
@@ -20,8 +18,6 @@ def build_command(name: str, url: str, stream_config: dict):
     LOGGER.info(f'Downloading: {name}')
     with youtube_dl.YoutubeDL(stream_config) as ytdl:
         ytdl.download([url])
-
-    exit(0)
 
 
 def get_config_from_env(options: dict):
@@ -58,6 +54,7 @@ def load_config() -> typing.Tuple[dict, dict]:
     get_config_from_env(options)
     LOGGER.info('config loaded')
     return yaml_config['options'], yaml_config['streams']
+
 
 def main():
     options, streams = load_config()
