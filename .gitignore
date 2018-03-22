@@ -2,3 +2,5 @@ Pipfile.lock
 .idea
 *.log
 test.*
+destination
+archive

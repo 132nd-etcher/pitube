@@ -1,4 +1,5 @@
 #coding=utf8
+import typing
 import requests
 import io
 import yaml
@@ -7,67 +8,33 @@ import delegator
 import pathlib
 import os
 import elib
+import youtube_dl
+
 
 
 YAML_LIST_URL = r'https://rawgit.com/132nd-etcher/7c70127508cf88ccc355bfbf67e2ea3d/raw/yt.yml'
 LOGGER = elib.custom_logging.get_logger('PITUBE', log_to_file=True, use_click_handler=False, console_level='DEBUG')
 
 
-@dataclasses.dataclass
-class GlobalConfig:
-    format: str
-    destination: str
-    archive: str
-    quality: int
-    playlist_end: int
-    streams: list
-    base_cmd: str = 'youtube-dl'
+def build_command(name: str, url: str, stream_config: dict):
+    LOGGER.info(f'Downloading: {name}')
+    with youtube_dl.YoutubeDL(stream_config) as ytdl:
+        ytdl.download([url])
+
+    exit(0)
 
 
-@dataclasses.dataclass
-class StreamConfig:
-    name: str
-    url: str
-    format: str = None
-    destination: str = None
-    archive: str = None
-    quality: int = None
-    playlist_end: int = None
-
-
-def build_command(global_config: GlobalConfig, stream_config: StreamConfig):
-    LOGGER.info(f'Downloading: {stream_config.name}')
-    format = stream_config.format or global_config.format
-    destination = stream_config.destination or global_config.destination
-    output = f'{str(pathlib.Path(destination).absolute())}/{format}'
-    archive = stream_config.archive or global_config.archive
-    archive = str(pathlib.Path(archive).absolute())
-    quality = stream_config.quality or global_config.quality
-    playlist_end = stream_config.playlist_end or global_config.playlist_end
-    cmd = io.StringIO()
-    cmd.write(global_config.base_cmd)
-    cmd.write(f' -o "{output}"')
-    cmd.write(f' --download-archive "{archive}"')
-    cmd.write(f' -f {quality}')
-    cmd.write(f' --playlist-end {playlist_end}')
-    cmd.write(f' "{stream_config.url}"')
-    cmd.seek(0)
-    cmd = cmd.read()
-    print(cmd)
-
-
-def get_config_from_env(config: GlobalConfig) -> GlobalConfig:
-    values = ['PITUBE_FORMAT', 'PITUBE_DESTINATION', 'PITUBE_ARCHIVE', 'PITUBE_QUALITY']
+def get_config_from_env(options: dict):
+    values = ['PITUBE_FORMAT', 'PITUBE_OUTTMPL', 'PITUBE_DOWNLOAD_ARCHIVE']
     for val in values:
         val_from_env = os.getenv(val)
         if val_from_env:
             LOGGER.warning(f'value overwritten in ENV: {val}')
             attr_name = val.replace('PITUBE_', '').lower()
-            setattr(config, attr_name, val_from_env)
-    return config
+            options[attr_name] = val_from_env
 
 
-def load_config() -> GlobalConfig:
+def load_config() -> typing.Tuple[dict, dict]:
     LOGGER.info('loading config')
     if pathlib.Path('test.yml').exists():
         LOGGER.warning('using local "test.yml" file')
@@ -82,21 +49,24 @@ def load_config() -> GlobalConfig:
     LOGGER.debug('decoding config')
     # noinspection PyTypeChecker
     req_text = io.TextIOWrapper(io.BytesIO(content), encoding='utf8')
+    print(req_text.read())
+    req_text.seek(0)
     LOGGER.debug('parsing config YAML into dictionary')
-    config = yaml.load(req_text)
-    config = GlobalConfig(**config)
+    yaml_config = yaml.load(req_text)
+    options = yaml_config['options']
     LOGGER.debug('loading config from ENV variables')
-    get_config_from_env(config)
+    get_config_from_env(options)
     LOGGER.info('config loaded')
-    return config
+    return yaml_config['options'], yaml_config['streams']
 
 def main():
-    global_config = load_config()
-    print(global_config)
-    for stream in global_config.streams:
-        # print(stream)
-        stream_config = StreamConfig(**stream)
-        build_command(global_config, stream_config)
+    options, streams = load_config()
+    print(options)
+    for stream in streams:
+        stream_config = dict(options)
+        if 'options' in stream:
+            stream_config.update(stream['options'])
+        build_command(stream['name'], stream['url'], stream_config)
 
 
 if __name__ == "__main__":
