@@ -1,3 +1,4 @@
+#coding=utf8
 import requests
 import io
 import yaml
@@ -7,8 +8,9 @@ import pathlib
 import os
 import elib
 
-
-YAML_LIST_URL = r'https://gist.github.com/132nd-etcher/7c70127508cf88ccc355bfbf67e2ea3d/raw/fa381c9957e1eb5cab6b2c5cbb6cc013cc8b1731/yt.yml'
+_GIST_ID = r'7c70127508cf88ccc355bfbf67e2ea3d'
+_GIST_FILE_ID = r'fa381c9957e1eb5cab6b2c5cbb6cc013cc8b1731'
+YAML_LIST_URL = rf'https://gist.github.com/132nd-etcher/{_GIST_ID}/raw/{_GIST_FILE_ID}/yt.yml'
 LOGGER = elib.custom_logging.get_logger('PITUBE', log_to_file=True, use_click_handler=False, console_level='DEBUG')
 
 
